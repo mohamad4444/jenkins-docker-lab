@@ -16,6 +16,11 @@ services:
       - jenkins-data:/var/jenkins_home
       - jenkins-docker-certs:/certs/client:ro
 
+  myapp:
+    image: myapp:latest
+    networks:
+      - jenkins
+
 networks:
   jenkins:
     name: jenkins
