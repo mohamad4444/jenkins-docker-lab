@@ -51,13 +51,16 @@ pipeline {
                         if (scope == 'myapp') {
                              sh "./scripts/bump_version.sh myapp/VERSION ${increment}"
                              def newVer = sh(script: 'cat myapp/VERSION', returnStdout: true).trim()
+                             sh "./scripts/update_changelog.py Versions.md ${newVer}"
                         } else if (scope == 'myservice') {
                              sh "./scripts/bump_version.sh myservice/VERSION ${increment}"
                              def newVer = sh(script: 'cat myservice/VERSION', returnStdout: true).trim()
+                             sh "./scripts/update_changelog.py Versions.md ${newVer}"
                         } else if (scope == 'root' || !scope) {
                              // Default to root bump if no scope or explicit root
                              sh "./scripts/bump_version.sh VERSION ${increment}"
                              def newVer = sh(script: 'cat VERSION', returnStdout: true).trim()
+                             sh "./scripts/update_changelog.py Versions.md ${newVer}"
                         }
                         
                         // Read all versions for tagging
