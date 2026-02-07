@@ -4,10 +4,101 @@ pipeline {
             label 'docker-agent-python'
         }
     }
+    environment {
+        GIT_AUTHOR_NAME = 'Jenkins'
+        GIT_AUTHOR_EMAIL = 'jenkins@example.com'
+    }
+    triggers {
+        pollSCM '* * * * *'
+    }
     stages {
+        stage('Dependency Check') {
+            steps {
+                script {
+                    // Check dependencies for myapp
+                    sh "./scripts/check_deps.py myapp"
+                }
+            }
+        }
+        stage('Versioning') {
+            steps {
+                script {
+                    sh "git config user.name '${GIT_AUTHOR_NAME}'"
+                    sh "git config user.email '${GIT_AUTHOR_EMAIL}'"
+
+                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    
+                    // Determine increment type
+                    def increment = ''
+                    if (commitMsg.contains('BREAKING CHANGE')) {
+                        increment = 'major'
+                    } else if (commitMsg.startsWith('feat')) {
+                        increment = 'minor'
+                    } else if (commitMsg.startsWith('fix')) {
+                        increment = 'patch'
+                    }
+
+                    if (increment) {
+                        // Scope detection based on commit message format: type(scope): message
+                        // e.g., feat(myapp): add feature
+                        
+                        def scope = ''
+                        def matcher = commitMsg =~ /^[a-z]+\(([^)]+)\):/
+                        if (matcher.find()) {
+                            scope = matcher[0][1]
+                        }
+
+                        if (scope == 'myapp') {
+                             sh "./scripts/bump_version.sh myapp/VERSION ${increment}"
+                             def newVer = sh(script: 'cat myapp/VERSION', returnStdout: true).trim()
+                        } else if (scope == 'myservice') {
+                             sh "./scripts/bump_version.sh myservice/VERSION ${increment}"
+                             def newVer = sh(script: 'cat myservice/VERSION', returnStdout: true).trim()
+                        } else if (scope == 'root' || !scope) {
+                             // Default to root bump if no scope or explicit root
+                             sh "./scripts/bump_version.sh VERSION ${increment}"
+                             def newVer = sh(script: 'cat VERSION', returnStdout: true).trim()
+                        }
+                        
+                        // Read all versions for tagging
+                        def rootVer = sh(script: 'cat VERSION', returnStdout: true).trim()
+                        def myAppVer = sh(script: 'cat myapp/VERSION', returnStdout: true).trim()
+                        def myServiceVer = sh(script: 'cat myservice/VERSION', returnStdout: true).trim()
+
+                        // NOTE: In a real pipeline, we would push these changes.
+                        // For this environment, we just log them.
+                        echo "New Versions - Root: ${rootVer}, MyApp: ${myAppVer}, MyService: ${myServiceVer}"
+                    }
+                }
+            }
+        }
         stage('Build') {
             steps {
-                sh 'docker buildx bake'
+                echo "Building Images..."
+                
+                // Prepare dependencies
+                sh "pip install -r myapp/requirements.txt"
+                
+                // Build with Bake
+                sh "docker buildx bake"
+            }
+        }
+        stage('Test') {
+            steps {
+                echo "Testing.."
+                sh '''
+                cd myapp
+                python3 hello.py
+                python3 hello.py --name=Jenkins
+                '''
+            }
+        }
+        stage('Deliver') {
+            steps {
+                echo 'Deliver....'
+                sh '''
+                echo "doing delivery stuff.."
+                '''
             }
         }
     }
