@@ -1,45 +1,55 @@
+# Version variables
 variable "JENKINS_VERSION" {
-  default = trimspace(file("VERSION"))
+  default = "0.1.1"
 }
 
 variable "APP_VERSION" {
-  default = trimspace(file("myapp/VERSION"))
+  default = "0.1.0"
 }
 
 variable "MYSERVICE_VERSION" {
-  default = trimspace(file("myservice/VERSION"))
+  default = "0.1.0"
 }
 
+# Add a registry variable
+variable "REGISTRY" {
+  default = "localhost:5000"  # Change this to your registry
+}
+
+# Group of targets
 group "default" {
   targets = ["jenkins", "myapp", "myservice"]
 }
 
+# Jenkins build target
 target "jenkins" {
-  context = "."
+  context = "jenkins"
   dockerfile = "Dockerfile"
   tags = [
-    "docker.io/myjenkins:${JENKINS_VERSION}",
-    "docker.io/myjenkins:latest"
+    "${REGISTRY}/myjenkins:${JENKINS_VERSION}",
+    "${REGISTRY}/myjenkins:latest"
   ]
   platforms = ["linux/amd64"]
 }
 
+# MyApp build target
 target "myapp" {
   context = "myapp"
   dockerfile = "Dockerfile"
   tags = [
-    "docker.io/myapp:${APP_VERSION}",
-    "docker.io/myapp:latest"
+    "${REGISTRY}/myapp:${APP_VERSION}",
+    "${REGISTRY}/myapp:latest"
   ]
   platforms = ["linux/amd64"]
 }
 
+# MyService build target
 target "myservice" {
   context = "myservice"
   dockerfile = "Dockerfile"
   tags = [
-    "docker.io/myservice:${MYSERVICE_VERSION}",
-    "docker.io/myservice:latest"
+    "${REGISTRY}/myservice:${MYSERVICE_VERSION}",
+    "${REGISTRY}/myservice:latest"
   ]
   platforms = ["linux/amd64"]
 }

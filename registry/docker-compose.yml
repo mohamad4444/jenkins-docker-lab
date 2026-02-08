@@ -1,0 +1,15 @@
+services:
+  registry:
+    image: registry:2
+    container_name: registry
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/var/lib/registry
+    restart: always
+    networks:
+      - registry_network
+
+networks:
+  registry_network:
+    driver: bridge

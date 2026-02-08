@@ -1,6 +1,6 @@
 services:
   jenkins:
-    image: myjenkins:1.0.0
+    image: localhost:5000/myjenkins:0.1.1
     container_name: jenkins
     restart: on-failure
     networks:
@@ -17,7 +17,7 @@ services:
       - jenkins-docker-certs:/certs/client:ro
 
   myapp:
-    image: myapp:latest
+    image: localhost:5000/myapp:latest
     networks:
       - jenkins
 
