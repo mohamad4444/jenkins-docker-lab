@@ -6,16 +6,31 @@ services:
     networks:
       - jenkins
     environment:
-      - DOCKER_HOST=tcp://docker:2376
-      - DOCKER_CERT_PATH=/certs/client
-      - DOCKER_TLS_VERIFY=1
+      # Connect to the socat container on port 2375
+      - DOCKER_HOST=tcp://socat:2375
+      # NOTE: We typically remove TLS vars here because socat 
+      # is just forwarding the unencrypted Unix socket over plain TCP.
+      # - DOCKER_CERT_PATH=/certs/client 
+      # - DOCKER_TLS_VERIFY=1
     ports:
       - "8080:8080"
       - "50000:50000"
     volumes:
       - jenkins-data:/var/jenkins_home
-      - jenkins-docker-certs:/certs/client:ro
 
+  # The Proxy Container
+  socat:
+    image: alpine/socat
+    container_name: jenkins-docker-proxy
+    restart: always
+    networks:
+      - jenkins
+    # This command listens on TCP 2375 and forwards traffic to the Unix socket
+    command: tcp-listen:2375,fork,bind=0.0.0.0 unix-connect:/var/run/docker.sock
+    volumes:
+      # Mount the HOST socket into the socat container
+      - /var/run/docker.sock:/var/run/docker.sock
+      
   myapp:
     image: localhost:5000/myapp:latest
     networks:
@@ -27,4 +42,4 @@ networks:
 
 volumes:
   jenkins-data:
-  jenkins-docker-certs:
+  # Certs volume is no longer needed for this specific method
